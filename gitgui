@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # git front end for fast and easy usage
 
@@ -36,6 +36,24 @@ def scan():
 		all_l.append((m,fn))
 
 	log('done\n',1)
+
+def remote():
+	global all_l
+
+	log('statusing ... ',1)
+
+	all_l = []
+	so = Popen(['git','remote','-v'],stdout=PIPE).communicate()[0]
+
+	for ln in so.split(b'\n'):
+		ln = ln.decode().strip()
+		if not ln: continue
+
+		m,fn = ln.split(' ',1)
+		# if m == '??': m = '?'
+		all_l.append((m,fn))
+
+	log('done remoting\n',1)
 
 def list():
 	global all_l,ign_l,fil_l
@@ -107,7 +125,7 @@ def do_com(e=0,check_msg=0):
 
 	# get commit message
 	msg = com_e.get()
-	if not msg: return log('missing commit message\n',1)
+	if not msg: return log('Fehlender Versions Kommentar\n',1)
 
 	# filter ignored files
 	for t in all_l:
@@ -158,7 +176,7 @@ def do_re(e=0):
 
 tk = Tk()
 repo_name = basename(realpath('.'))
-tk.title('['+repo_name + '] gitgui 0.0.7 by J.Justra 11.7.2022')
+tk.title('['+repo_name + '] gitgui 0.0.7 by J.Justra 11.7.2022, mod by P.Jörg')
 
 
 tk.bind('<Escape>',quit)
@@ -170,16 +188,17 @@ tk.bind('<Down>',do_down)
 tk.bind('<F5>',do_re)
 
 fil_l=Listbox(tk)
-ign_b = Button(tk,text='Ignore (Alt+i)',command=do_ign)
+# ign_b = Button(tk,text='Änderungen löschen!',command=do_ign)
+remote_b = Button(tk,text='Server URL',command=remote)
 com_e = Entry(tk)
-com_b = Button(tk,text='Commit (Alt+c)',command=do_com)
-psh_b = Button(tk,text='Push (Alt+p)',command=do_psh)
+com_b = Button(tk,text='Version speichern mit Kommentar',command=do_com)
+psh_b = Button(tk,text='Push',command=do_psh)
 
 log_t=Text(tk,width=40,height=10)
 
 
 fil_l.grid(sticky='NEWS')
-ign_b.grid(sticky='NEWS')
+remote_b.grid(sticky='NEWS')
 com_e.grid(sticky='NEWS')
 com_b.grid(sticky='NEWS')
 psh_b.grid(sticky='NEWS')
@@ -187,7 +206,7 @@ log_t.grid(sticky='NEWS')
 
 scan()
 list()
-log('ready\nF5 for refresh\n')
+log('\nF5 bei Änderungen an Dateien\n')
 com_e.focus_force()
 
 tk.mainloop()
