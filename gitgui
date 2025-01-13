@@ -1,17 +1,11 @@
-#!/usr/bin/python3
-
 # git front end for fast and easy usage
 
 # alt+i ignore selected files
 # alt+c commit (stage all not-ignored files)
 # alt+p push (does auto-commit)
 
-try:
-	from tkinter import *
-except ImportError:
-	# Retro for python 2
-	from Tkinter import *
-from subprocess import Popen,PIPE
+import tkinter as tk
+from subprocess import Popen, PIPE
 from os.path import realpath, basename
 
 
@@ -20,181 +14,198 @@ ign_l = []
 
 
 def scan():
-	global all_l
+    global all_l
 
-	log('statusing ... ',1)
+    log('statusing ... ', 1)
 
-	all_l = []
-	so = Popen(['git','status','--short'],stdout=PIPE).communicate()[0]
+    all_l = []
+    so = Popen(['git', 'status', '--short'], stdout=PIPE).communicate()[0]
 
-	for ln in so.split(b'\n'):
-		ln = ln.decode().strip()
-		if not ln: continue
+    for ln in so.split(b'\n'):
+        ln = ln.decode().strip()
+        if not ln:
+            continue
 
-		m,fn = ln.split(' ',1)
-		if m == '??': m = '?'
-		all_l.append((m,fn))
+        m, fn = ln.split(' ', 1)
+        if m == '??':
+            m = '?'
+        all_l.append((m, fn))
 
-	log('done\n',1)
+    log('done\n', 1)
+
 
 def remote():
-	global all_l
+    global all_l
 
-	log('statusing ... ',1)
+    log('statusing ... ', 1)
 
-	all_l = []
-	so = Popen(['git','remote','-v'],stdout=PIPE).communicate()[0]
+    all_l = []
+    so = Popen(['git', 'remote', '-v'], stdout=PIPE).communicate()[0]
 
-	for ln in so.split(b'\n'):
-		ln = ln.decode().strip()
-		if not ln: continue
+    for ln in so.split(b'\n'):
+        ln = ln.decode().strip()
+        if not ln:
+            continue
 
-		m,fn = ln.split(' ',1)
-		# if m == '??': m = '?'
-		all_l.append((m,fn))
+        m, fn = ln.split(' ', 1)
+        # if m == '??': m = '?'
+        all_l.append((m, fn))
 
-	log('done remoting\n',1)
+    log('done remoting\n', 1)
+
 
 def list():
-	global all_l,ign_l,fil_l
+    global all_l, ign_l, fil_l
 
-	i = 0
+    i = 0
 
-	# get selected index
-	s = fil_l.get(ACTIVE)
-	if s:
-		i = fil_l.get(0,END).index(s)
+    # get selected index
+    s = fil_l.get(tk.ACTIVE)
+    if s:
+        i = fil_l.get(0, tk.END).index(s)
 
-	# refresh
-	fil_l.delete(0,END)
-	for t in all_l:
-		m,fn = t
-		if fn in ign_l: m = 'I'
-		fil_l.insert(END,'%s %s'%(m,fn))
+    # refresh
+    fil_l.delete(0, tk.END)
+    for t in all_l:
+        m, fn = t
+        if fn in ign_l:
+            m = 'I'
+        fil_l.insert(tk.END, '%s %s' % (m, fn))
 
-	fil_l.selection_clear(0,END)
-	fil_l.see(i)
-	fil_l.activate(i)
-	fil_l.selection_set(i)
-	fil_l.selection_anchor(i)
+    fil_l.selection_clear(0, tk.END)
+    fil_l.see(i)
+    fil_l.activate(i)
+    fil_l.selection_set(i)
+    fil_l.selection_anchor(i)
 
-def log(s,add=0):
-	global log_t, tk
 
-	if not add:
-		log_t.delete(1.0,END)
+def log(s, add=0):
+    global log_t, tk
 
-	log_t.insert(END,s)
-	tk.update_idletasks()
+    if not add:
+        log_t.delete(1.0, tk.END)
+
+    log_t.insert(tk.END, s)
+    tkg.update_idletasks()
+
 
 def quit(e=0):
-	tk.destroy()
+    tkg.destroy()
+
 
 def do_ign(e=0):
-	global fil_l,ign_l
+    global fil_l, ign_l
 
-	# get selected filename
-	fn = fil_l.get(ACTIVE).split(' ',1)[1]
+    # get selected filename
+    fn = fil_l.get(tk.ACTIVE).split(' ', 1)[1]
 
-	# add or remove - ignore list
-	if fn not in ign_l:
-		ign_l.append(fn)
-		log('ignored : '+fn+'\n')
-	else:
-		ign_l.pop(ign_l.index(fn))
-		log('unignored : '+fn+'\n')
+    # add or remove - ignore list
+    if fn not in ign_l:
+        ign_l.append(fn)
+        log('ignored : '+fn+'\n')
+    else:
+        ign_l.pop(ign_l.index(fn))
+        log('unignored : '+fn+'\n')
 
-	list()
+    list()
 
-def do_com(e=0,check_msg=0):
-	global ign_l,com_e
 
-	# workflow sugar
-	if com_e.focus_get() != com_e:
-		if not check_msg or not com_e.get():
-			com_e.focus()
-			return
+def do_com(e=0, check_msg=0):
+    global ign_l, com_e
 
-	# rescan - just in case
-	scan()
-	list()
+    # workflow sugar
+    if com_e.focus_get() != com_e:
+        if not check_msg or not com_e.get():
+            com_e.focus()
+            return
 
-	log('commiting ... ')
+    # rescan - just in case
+    scan()
+    list()
 
-	l = []
+    log('commiting ... ')
 
-	# get commit message
-	msg = com_e.get()
-	if not msg: return log('Fehlender Versions Kommentar\n',1)
+    listing = []
 
-	# filter ignored files
-	for t in all_l:
-		m,fn = t
-		if fn not in ign_l:
-			l.append(fn)
+    # get commit message
+    msg = com_e.get()
+    if not msg:
+        return log('Fehlender Versions Kommentar\n', 1)
 
-	if l:
-		# stage files
-		so = Popen(['git','add']+l,stdout=PIPE).communicate()[0]
-		log(so,1)
+    # filter ignored files
+    for t in all_l:
+        m, fn = t
+        if fn not in ign_l:
+            listing.append(fn)
 
-	so = Popen(['git','commit','-m',msg],stdout=PIPE).communicate()[0]
-#	print l,msg
-	log(so,1)
-	com_e.delete(0,END)
+    if listing:
+        # stage files
+        so = Popen(['git', 'add']+listing, stdout=PIPE).communicate()[0]
+        log(so, 1)
 
-	scan()
-	list()
+    so = Popen(['git', 'commit', '-m', msg], stdout=PIPE).communicate()[0]
+#    print listing,msg
+    log(so, 1)
+    com_e.delete(0, tk.END)
+
+    scan()
+    list()
+
 
 def do_psh(e=0):
-	# clear log
-	log('')
+    # clear log
+    log('')
 
-	# do commit (only if commit msg not empty)
-	do_com(0,1)
+    # do commit (only if commit msg not empty)
+    do_com(0, 1)
 
-	# rescan - just in case
-	scan()
-	list()
+    # rescan - just in case
+    scan()
+    list()
 
-	# push
-	log('pushing ... ', 1)
-	so,se = Popen(['git','push'],stdout=PIPE,stderr=PIPE).communicate()
-	log(so,1)
-	log(se,1)
+    # push
+    log('pushing ... ', 1)
+    so, se = Popen(['git', 'push'], stdout=PIPE, stderr=PIPE).communicate()
+    log(so, 1)
+    log(se, 1)
+
 
 def do_up(e=0):
-	global fil_l
-	fil_l.focus()
+    global fil_l
+    fil_l.focus()
+
+
 def do_down(e=0):
-	global fil_l
-	fil_l.focus()
+    global fil_l
+    fil_l.focus()
+
 
 def do_re(e=0):
-	scan()
-	list()
+    scan()
+    list()
 
-tk = Tk()
+
+tkg = tk.Tk()
 repo_name = basename(realpath('.'))
-tk.title('['+repo_name + '] gitgui 0.0.7 by J.Justra 11.7.2022, mod by P.Jörg')
+tkg.title('['+repo_name + '] gitgui 0.0.7 by J.Justra, mod by P.Jörg')
 
 
-tk.bind('<Escape>',quit)
-tk.bind('<Alt-i>',do_ign)
-tk.bind('<Alt-c>',do_com)
-tk.bind('<Alt-p>',do_psh)
-tk.bind('<Up>',do_up)
-tk.bind('<Down>',do_down)
-tk.bind('<F5>',do_re)
+tkg.bind('<Escape>', quit)
+tkg.bind('<Alt-i>', do_ign)
+tkg.bind('<Alt-c>', do_com)
+tkg.bind('<Alt-p>', do_psh)
+tkg.bind('<Up>', do_up)
+tkg.bind('<Down>', do_down)
+tkg.bind('<F5>', do_re)
 
-fil_l=Listbox(tk)
+fil_l = tk.Listbox(tkg)
 # ign_b = Button(tk,text='Änderungen löschen!',command=do_ign)
-remote_b = Button(tk,text='Server URL',command=remote)
-com_e = Entry(tk)
-com_b = Button(tk,text='Version speichern mit Kommentar',command=do_com)
-psh_b = Button(tk,text='Push',command=do_psh)
+remote_b = tk.Button(tkg, text='Server URL', command=remote)
+com_e = tk.Entry(tkg)
+com_b = tk.Button(tkg, text='Version speichern mit Kommentar', command=do_com)
+psh_b = tk.Button(tkg, text='Push', command=do_psh)
 
-log_t=Text(tk,width=40,height=10)
+log_t = tk.Text(tkg, width=40, height=10)
 
 
 fil_l.grid(sticky='NEWS')
